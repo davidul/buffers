@@ -87,7 +87,7 @@ func TestRead_Empty(t *testing.T) {
 	buffer := NewEmptySeekBuffer()
 	dst := make([]byte, 12)
 	n, err := buffer.Read(dst)
-	if err != nil {
+	if err != io.EOF {
 		t.Errorf("error should be nil, but got %v", err)
 	}
 
