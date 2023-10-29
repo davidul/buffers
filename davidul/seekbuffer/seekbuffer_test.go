@@ -155,3 +155,27 @@ func TestSeek(t *testing.T) {
 	}
 
 }
+
+func TestReadBytes(t *testing.T) {
+	buffer := NewSeekBuffer([]byte{1, 2, 3, 4, 5, 6, '\n', 8, 9})
+	dst, err := buffer.ReadBytes(4)
+	if err != nil {
+		t.Errorf("error should be nil, but got %v", err)
+	}
+	if len(dst) != 4 {
+		t.Errorf("len should be 4, but got %d", len(dst))
+	}
+	if buffer.offset != 4 {
+		t.Errorf("offset should be 4, but got %d", buffer.offset)
+	}
+	bytes, err := buffer.ReadBytes('\n')
+	if err != nil {
+		t.Errorf("error should be nil, but got %v", err)
+	}
+	if len(bytes) != 3 {
+		t.Errorf("len should be 1, but got %d", len(bytes))
+	}
+	if buffer.offset != 7 {
+		t.Errorf("offset should be 7, but got %d", buffer.offset)
+	}
+}

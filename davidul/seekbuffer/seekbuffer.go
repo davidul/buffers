@@ -1,6 +1,9 @@
 package seekbuffer
 
-import "io"
+import (
+	"bytes"
+	"io"
+)
 
 // byte buffer and pointer to the current offset
 type SeekBuffer struct {
@@ -68,4 +71,16 @@ func (s *SeekBuffer) Close() error {
 	s.offset = 0
 	s.buffer = nil
 	return nil
+}
+
+// read bytes up to the first occurrence of c
+func (s *SeekBuffer) ReadBytes(c byte) ([]byte, error) {
+	indexByte := bytes.IndexByte(s.buffer[s.offset:], c)
+	if indexByte == -1 {
+		return s.buffer, io.EOF
+	}
+	end := s.offset + indexByte + 1
+	b := s.buffer[s.offset:end]
+	s.offset = end
+	return b, nil
 }
