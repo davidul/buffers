@@ -86,5 +86,5 @@ func (s *SeekBuffer) ReadBytes(c byte) ([]byte, error) {
 }
 
 func (s *SeekBuffer) Len() int {
-	return len(s.buffer)
+	return len(s.buffer) - s.offset
 }
