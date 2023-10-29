@@ -77,7 +77,7 @@ func (s *SeekBuffer) Close() error {
 func (s *SeekBuffer) ReadBytes(c byte) ([]byte, error) {
 	indexByte := bytes.IndexByte(s.buffer[s.offset:], c)
 	if indexByte == -1 {
-		return s.buffer, io.EOF
+		return s.buffer[s.offset:], io.EOF
 	}
 	end := s.offset + indexByte + 1
 	b := s.buffer[s.offset:end]

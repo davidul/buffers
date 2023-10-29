@@ -179,3 +179,14 @@ func TestReadBytes(t *testing.T) {
 		t.Errorf("offset should be 7, but got %d", buffer.offset)
 	}
 }
+
+func TestReadBytes_NotFound(t *testing.T) {
+	buffer := NewSeekBuffer([]byte{1, 2, 3, 4, 5, 6, '\n', 8, 9})
+	_, err := buffer.ReadBytes(11)
+	if err != io.EOF {
+		t.Errorf("error should be nil, but got %v", err)
+	}
+	if buffer.offset != 0 {
+		t.Errorf("offset should be 0, but got %d", buffer.offset)
+	}
+}
