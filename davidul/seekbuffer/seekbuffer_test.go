@@ -186,7 +186,7 @@ func TestReadBytes_NotFound(t *testing.T) {
 	if err != io.EOF {
 		t.Errorf("error should be nil, but got %v", err)
 	}
-	if buffer.offset != 0 {
-		t.Errorf("offset should be 0, but got %d", buffer.offset)
+	if buffer.offset != 9 {
+		t.Errorf("offset should be 9, but got %d", buffer.offset)
 	}
 }
