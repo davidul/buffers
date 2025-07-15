@@ -18,7 +18,7 @@ func TestNewEmptyBuffer(t *testing.T) {
 func TestNewBuffer(t *testing.T) {
 	b := NewSeekBuffer([]byte{1, 2, 3})
 	if len(b.buffer) != 3 {
-		t.Errorf("buffer should be empty, but got %v", b.buffer)
+		t.Errorf("buffer should have len 3, but got %d", len(b.buffer))
 	}
 	if b.offset != 0 {
 		t.Errorf("offset should be 0, but got %d", b.offset)
@@ -28,18 +28,36 @@ func TestRewind(t *testing.T) {
 	b := NewEmptySeekBuffer()
 	b.Append([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9})
 	dst := make([]byte, 2)
-	b.Read(dst)
+	read, err := b.Read(dst)
+	if err != nil {
+		t.Errorf("error should be nil, but got %v", err)
+		return
+	}
+
 	if b.offset != 2 {
 		t.Errorf("offset should be 2, but got %d", b.offset)
 	}
+	if read != 2 {
+		t.Errorf("read should be 2, but got %d", read)
+
+	}
+
 	dst2 := make([]byte, 3)
-	b.Read(dst2)
+	_, err2 := b.Read(dst2)
+	if err2 != nil {
+		t.Errorf("error should be nil, but got %v", err2)
+		return
+	}
 	if b.offset != 5 {
 		t.Errorf("offset should be 5, but got %d", b.offset)
 	}
 	b.Rewind()
 	dst3 := make([]byte, 2)
-	b.Read(dst3)
+	_, err3 := b.Read(dst3)
+	if err3 != nil {
+		t.Errorf("error should be nil, but got %v", err3)
+		return
+	}
 	if b.offset != 2 {
 		t.Errorf("offset should be 0, but got %d", b.offset)
 	}

@@ -5,13 +5,19 @@ import (
 	"io"
 )
 
-// byte buffer and pointer to the current offset
+// Package seekbuffer provides a SeekBuffer that implements io.Reader and io.Writer interfaces.
+// It allows reading and writing bytes with a seekable offset, similar to a file.
+// It is useful for scenarios where you need to read and write data in a buffered manner,
+// while keeping track of the current position in the buffer, such as in network protocols or file processing.
+// It is not thread-safe, so it should be used in a single goroutine or with proper synchronization.
+
+// SeekBuffer byte buffer and pointer to the current offset
 type SeekBuffer struct {
 	buffer []byte
 	offset int
 }
 
-// empty buffer
+// NewEmptySeekBuffer empty buffer, offset is 0
 func NewEmptySeekBuffer() *SeekBuffer {
 	return &SeekBuffer{
 		buffer: make([]byte, 0),
@@ -19,7 +25,7 @@ func NewEmptySeekBuffer() *SeekBuffer {
 	}
 }
 
-// buffer with initial content
+// NewSeekBuffer buffer with initial content. Copy src into buffer.
 func NewSeekBuffer(src []byte) *SeekBuffer {
 	a := make([]byte, len(src))
 	copy(a, src)
@@ -29,12 +35,12 @@ func NewSeekBuffer(src []byte) *SeekBuffer {
 	}
 }
 
-// returns current content of the buffer
+// Bytes returns current content of the buffer
 func (s *SeekBuffer) Bytes() []byte {
 	return s.buffer
 }
 
-// appends content to the buffer
+// Append appends content to the buffer
 func (s *SeekBuffer) Append(src []byte) {
 	s.buffer = append(s.buffer, src...)
 }
@@ -56,24 +62,24 @@ func (s *SeekBuffer) Read(dst []byte) (int, error) {
 	return n, nil
 }
 
-// rewinds the buffer to the beginning
+// Rewind rewinds the buffer to the beginning
 func (s *SeekBuffer) Rewind() {
 	s.offset = 0
 }
 
-// seeks to the offset
+// Seek seeks to the offset
 func (s *SeekBuffer) Seek(offset int) {
 	s.offset = offset
 }
 
-// closes the buffer
+// Close closes the buffer
 func (s *SeekBuffer) Close() error {
 	s.offset = 0
 	s.buffer = nil
 	return nil
 }
 
-// read bytes up to the first occurrence of c
+// ReadBytes read bytes up to the first occurrence of c
 func (s *SeekBuffer) ReadBytes(c byte) ([]byte, error) {
 	indexByte := bytes.IndexByte(s.buffer[s.offset:], c)
 	if indexByte == -1 {
