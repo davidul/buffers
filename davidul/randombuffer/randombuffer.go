@@ -11,8 +11,8 @@ type RandomBuffer struct {
 	writeOffset int
 }
 
-// NewEmptySBuffer creates a new empty RandomBuffer.
-func NewEmptySBuffer() *RandomBuffer {
+// NewEmptyRandomBuffer creates a new empty RandomBuffer.
+func NewEmptyRandomBuffer() *RandomBuffer {
 	return &RandomBuffer{
 		buffer:      make([]byte, 0),
 		readOffset:  0,
@@ -20,8 +20,8 @@ func NewEmptySBuffer() *RandomBuffer {
 	}
 }
 
-// NewSBufferWithCapacity creates a new RandomBuffer with the specified capacity.
-func NewSBufferWithCapacity(capacity int) *RandomBuffer {
+// NewRandomBufferWithCapacity creates a new RandomBuffer with the specified capacity.
+func NewRandomBufferWithCapacity(capacity int) *RandomBuffer {
 	return &RandomBuffer{
 		buffer:      make([]byte, 0, capacity),
 		readOffset:  0,
@@ -29,8 +29,8 @@ func NewSBufferWithCapacity(capacity int) *RandomBuffer {
 	}
 }
 
-// NewSBuffer creates a new RandomBuffer initialized with the given byte slice.
-func NewSBuffer(buffer []byte) *RandomBuffer {
+// NewRandomBuffer creates a new RandomBuffer initialized with the given byte slice.
+func NewRandomBuffer(buffer []byte) *RandomBuffer {
 	return &RandomBuffer{
 		buffer:      buffer,
 		writeOffset: len(buffer),
