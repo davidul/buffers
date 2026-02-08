@@ -4,16 +4,19 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"sync"
 )
 
 // Package seekbuffer provides a SeekBuffer that implements io.Reader and io.Writer interfaces.
 // It allows reading and writing bytes with a seekable offset, similar to a file.
 // It is useful for scenarios where you need to read and write data in a buffered manner,
 // while keeping track of the current position in the buffer, such as in network protocols or file processing.
-// It is not thread-safe, so it should be used in a single goroutine or with proper synchronization.
+// It is thread-safe and can be safely used from multiple goroutines.
 
 // SeekBuffer byte buffer and pointer to the current offset
+// All operations are protected by a RWMutex for thread-safety
 type SeekBuffer struct {
+	mu     sync.RWMutex
 	buffer []byte
 	offset int
 }
@@ -37,23 +40,36 @@ func NewSeekBuffer(src []byte) *SeekBuffer {
 }
 
 // Bytes returns current content of the buffer
+// Thread-safe: uses read lock
 func (s *SeekBuffer) Bytes() []byte {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.buffer
 }
 
 // Append appends content to the buffer
+// Thread-safe: uses write lock
 func (s *SeekBuffer) Append(src []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.buffer = append(s.buffer, src...)
 }
 
-// writes content to the buffer, alias for Append
+// Write writes content to the buffer
+// Thread-safe: uses write lock
 func (s *SeekBuffer) Write(src []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.buffer = append(s.buffer, src...)
 	return len(src), nil
 }
 
-// reads content from the buffer into dst
+// Read reads content from the buffer into dst
+// Thread-safe: uses write lock (modifies offset)
 func (s *SeekBuffer) Read(dst []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.offset >= len(s.buffer) {
 		return 0, io.EOF
 	}
@@ -64,24 +80,37 @@ func (s *SeekBuffer) Read(dst []byte) (int, error) {
 }
 
 // Rewind rewinds the buffer to the beginning
+// Thread-safe: uses write lock
 func (s *SeekBuffer) Rewind() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.offset = 0
 }
 
 // Seek seeks to the offset
+// Thread-safe: uses write lock
 func (s *SeekBuffer) Seek(offset int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.offset = offset
 }
 
 // Close closes the buffer
+// Thread-safe: uses write lock
 func (s *SeekBuffer) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.offset = 0
 	s.buffer = nil
 	return nil
 }
 
 // ReadBytes read bytes up to the first occurrence of c
+// Thread-safe: uses write lock (modifies offset)
 func (s *SeekBuffer) ReadBytes(c byte) ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	indexByte := bytes.IndexByte(s.buffer[s.offset:], c)
 	if indexByte == -1 {
 		b := s.buffer[s.offset:]
@@ -94,17 +123,28 @@ func (s *SeekBuffer) ReadBytes(c byte) ([]byte, error) {
 	return b, nil
 }
 
+// Len returns the number of unread bytes in the buffer
+// Thread-safe: uses read lock
 func (s *SeekBuffer) Len() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return len(s.buffer) - s.offset
 }
 
 // SaveToFile writes the buffer content to a file (overwrites if exists)
+// Thread-safe: uses read lock
 func (s *SeekBuffer) SaveToFile(filename string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return os.WriteFile(filename, s.buffer, 0644)
 }
 
 // AppendToFile appends the buffer content to an existing file or creates a new one
+// Thread-safe: uses read lock
 func (s *SeekBuffer) AppendToFile(filename string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -116,7 +156,11 @@ func (s *SeekBuffer) AppendToFile(filename string) error {
 }
 
 // AppendUnreadToFile appends only the unread portion of the buffer (from offset to end) to a file
+// Thread-safe: uses read lock
 func (s *SeekBuffer) AppendUnreadToFile(filename string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if s.offset >= len(s.buffer) {
 		return nil // Nothing to append
 	}
@@ -132,7 +176,11 @@ func (s *SeekBuffer) AppendUnreadToFile(filename string) error {
 }
 
 // LoadFromFile reads the file content into the buffer and resets the offset to 0
+// Thread-safe: uses write lock
 func (s *SeekBuffer) LoadFromFile(filename string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
