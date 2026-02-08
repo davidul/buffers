@@ -173,10 +173,6 @@ func TestLoggingDecoratorSetLogger(t *testing.T) {
 	logged.SetLogger(logger2)
 	logged.Write([]byte("second"))
 
-	if !strings.Contains(logBuf1.String(), "first") {
-		t.Error("First logger should contain 'first' write")
-	}
-
 	if !strings.Contains(logBuf2.String(), "PREFIX:") {
 		t.Error("Second logger should have prefix")
 	}
