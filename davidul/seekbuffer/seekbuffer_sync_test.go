@@ -10,18 +10,19 @@ func TestEnableFileSync_BasicWrite(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewEmptySeekBuffer()
-	err := buffer.EnableFileSync(filename)
+	decorator := NewFileSyncDecorator(buffer)
+	err := decorator.EnableFileSync(filename)
 	if err != nil {
 		t.Fatalf("EnableFileSync failed: %v", err)
 	}
-	defer buffer.Close()
+	defer decorator.Close()
 
 	// Write some data
-	buffer.Write([]byte("Hello, World!"))
+	decorator.Write([]byte("Hello, World!"))
 
 	// Verify data is in buffer
-	if string(buffer.Bytes()) != "Hello, World!" {
-		t.Errorf("Buffer content mismatch: got '%s'", string(buffer.Bytes()))
+	if string(decorator.Bytes()) != "Hello, World!" {
+		t.Errorf("SeekableBuffer content mismatch: got '%s'", string(decorator.Bytes()))
 	}
 
 	// Verify data is in file
@@ -39,16 +40,17 @@ func TestEnableFileSync_MultipleWrites(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewEmptySeekBuffer()
-	err := buffer.EnableFileSync(filename)
+	decorator := NewFileSyncDecorator(buffer)
+	err := decorator.EnableFileSync(filename)
 	if err != nil {
 		t.Fatalf("EnableFileSync failed: %v", err)
 	}
-	defer buffer.Close()
+	defer decorator.Close()
 
 	// Write data in multiple chunks
-	buffer.Write([]byte("First "))
-	buffer.Write([]byte("Second "))
-	buffer.Write([]byte("Third"))
+	decorator.Write([]byte("First "))
+	decorator.Write([]byte("Second "))
+	decorator.Write([]byte("Third"))
 
 	// Verify file content
 	data, err := os.ReadFile(filename)
@@ -67,15 +69,16 @@ func TestEnableFileSync_WithRewind(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewSeekBuffer([]byte("ABCDEFGHIJ"))
-	err := buffer.EnableFileSync(filename)
+	decorator := NewFileSyncDecorator(buffer)
+	err := decorator.EnableFileSync(filename)
 	if err != nil {
 		t.Fatalf("EnableFileSync failed: %v", err)
 	}
-	defer buffer.Close()
+	defer decorator.Close()
 
 	// Read some data
 	dst := make([]byte, 5)
-	n, err := buffer.Read(dst)
+	n, err := decorator.Read(dst)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -84,11 +87,11 @@ func TestEnableFileSync_WithRewind(t *testing.T) {
 	}
 
 	// Rewind
-	buffer.Rewind()
+	decorator.Rewind()
 
 	// Read again - should get same data
 	dst2 := make([]byte, 5)
-	n2, err := buffer.Read(dst2)
+	n2, err := decorator.Read(dst2)
 	if err != nil {
 		t.Fatalf("Read after rewind failed: %v", err)
 	}
@@ -102,18 +105,19 @@ func TestEnableFileSync_WithSeek(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewSeekBuffer([]byte("0123456789"))
-	err := buffer.EnableFileSync(filename)
+	decorator := NewFileSyncDecorator(buffer)
+	err := decorator.EnableFileSync(filename)
 	if err != nil {
 		t.Fatalf("EnableFileSync failed: %v", err)
 	}
-	defer buffer.Close()
+	defer decorator.Close()
 
 	// Seek to position 5
-	buffer.Seek(5)
+	decorator.Seek(5)
 
 	// Read from position 5
 	dst := make([]byte, 3)
-	n, err := buffer.Read(dst)
+	n, err := decorator.Read(dst)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -122,11 +126,11 @@ func TestEnableFileSync_WithSeek(t *testing.T) {
 	}
 
 	// Seek back to 2
-	buffer.Seek(2)
+	decorator.Seek(2)
 
 	// Read from position 2
 	dst2 := make([]byte, 3)
-	n2, err := buffer.Read(dst2)
+	n2, err := decorator.Read(dst2)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -141,13 +145,14 @@ func TestEnableFileSync_ExistingBuffer(t *testing.T) {
 
 	// Create buffer with existing data
 	buffer := NewSeekBuffer([]byte("Existing content"))
+	decorator := NewFileSyncDecorator(buffer)
 
 	// Enable sync - should write existing content to file
-	err := buffer.EnableFileSync(filename)
+	err := decorator.EnableFileSync(filename)
 	if err != nil {
 		t.Fatalf("EnableFileSync failed: %v", err)
 	}
-	defer buffer.Close()
+	defer decorator.Close()
 
 	// Verify file has existing content
 	data, err := os.ReadFile(filename)
@@ -159,7 +164,7 @@ func TestEnableFileSync_ExistingBuffer(t *testing.T) {
 	}
 
 	// Add more data
-	buffer.Write([]byte(" + More"))
+	decorator.Write([]byte(" + More"))
 
 	// Verify file has all content
 	data, err = os.ReadFile(filename)
@@ -176,13 +181,14 @@ func TestDisableFileSync(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewEmptySeekBuffer()
-	err := buffer.EnableFileSync(filename)
+	decorator := NewFileSyncDecorator(buffer)
+	err := decorator.EnableFileSync(filename)
 	if err != nil {
 		t.Fatalf("EnableFileSync failed: %v", err)
 	}
 
 	// Write some data
-	buffer.Write([]byte("Synced data"))
+	decorator.Write([]byte("Synced data"))
 
 	// Verify it's synced
 	data, _ := os.ReadFile(filename)
@@ -191,17 +197,17 @@ func TestDisableFileSync(t *testing.T) {
 	}
 
 	// Disable sync
-	err = buffer.DisableFileSync()
+	err = decorator.DisableFileSync()
 	if err != nil {
 		t.Fatalf("DisableFileSync failed: %v", err)
 	}
 
 	// Write more data - should NOT sync to file
-	buffer.Write([]byte(" + Not synced"))
+	decorator.Write([]byte(" + Not synced"))
 
 	// Verify buffer has all data
-	if string(buffer.Bytes()) != "Synced data + Not synced" {
-		t.Errorf("Buffer should have all data: got '%s'", string(buffer.Bytes()))
+	if string(decorator.Bytes()) != "Synced data + Not synced" {
+		t.Errorf("SeekableBuffer should have all data: got '%s'", string(decorator.Bytes()))
 	}
 
 	// Verify file still has old data only
@@ -213,53 +219,55 @@ func TestDisableFileSync(t *testing.T) {
 
 func TestIsSyncEnabled(t *testing.T) {
 	buffer := NewEmptySeekBuffer()
+	decorator := NewFileSyncDecorator(buffer)
 
 	// Initially not synced
-	if buffer.IsSyncEnabled() {
-		t.Error("Buffer should not be synced initially")
+	if decorator.IsSyncEnabled() {
+		t.Error("SeekableBuffer should not be synced initially")
 	}
 
 	// Enable sync
 	filename := "test_is_sync.dat"
 	defer os.Remove(filename)
-	buffer.EnableFileSync(filename)
-	defer buffer.Close()
+	decorator.EnableFileSync(filename)
+	defer decorator.Close()
 
-	if !buffer.IsSyncEnabled() {
-		t.Error("Buffer should be synced after EnableFileSync")
+	if !decorator.IsSyncEnabled() {
+		t.Error("SeekableBuffer should be synced after EnableFileSync")
 	}
 
 	// Disable sync
-	buffer.DisableFileSync()
+	decorator.DisableFileSync()
 
-	if buffer.IsSyncEnabled() {
-		t.Error("Buffer should not be synced after DisableFileSync")
+	if decorator.IsSyncEnabled() {
+		t.Error("SeekableBuffer should not be synced after DisableFileSync")
 	}
 }
 
 func TestGetSyncFilename(t *testing.T) {
 	buffer := NewEmptySeekBuffer()
+	decorator := NewFileSyncDecorator(buffer)
 
 	// Initially no filename
-	if buffer.GetSyncFilename() != "" {
-		t.Errorf("Expected empty filename, got '%s'", buffer.GetSyncFilename())
+	if decorator.GetSyncFilename() != "" {
+		t.Errorf("Expected empty filename, got '%s'", decorator.GetSyncFilename())
 	}
 
 	// Enable sync
 	filename := "test_filename.dat"
 	defer os.Remove(filename)
-	buffer.EnableFileSync(filename)
-	defer buffer.Close()
+	decorator.EnableFileSync(filename)
+	defer decorator.Close()
 
-	if buffer.GetSyncFilename() != filename {
-		t.Errorf("Expected '%s', got '%s'", filename, buffer.GetSyncFilename())
+	if decorator.GetSyncFilename() != filename {
+		t.Errorf("Expected '%s', got '%s'", filename, decorator.GetSyncFilename())
 	}
 
 	// Disable sync
-	buffer.DisableFileSync()
+	decorator.DisableFileSync()
 
-	if buffer.GetSyncFilename() != "" {
-		t.Errorf("After disable, expected empty filename, got '%s'", buffer.GetSyncFilename())
+	if decorator.GetSyncFilename() != "" {
+		t.Errorf("After disable, expected empty filename, got '%s'", decorator.GetSyncFilename())
 	}
 }
 
@@ -270,10 +278,11 @@ func TestEnableFileSync_SwitchFiles(t *testing.T) {
 	defer os.Remove(file2)
 
 	buffer := NewEmptySeekBuffer()
+	decorator := NewFileSyncDecorator(buffer)
 
 	// Sync to first file
-	buffer.EnableFileSync(file1)
-	buffer.Write([]byte("File 1 content"))
+	decorator.EnableFileSync(file1)
+	decorator.Write([]byte("File 1 content"))
 
 	// Verify file1
 	data1, _ := os.ReadFile(file1)
@@ -282,7 +291,7 @@ func TestEnableFileSync_SwitchFiles(t *testing.T) {
 	}
 
 	// Switch to second file - should write current buffer to new file
-	buffer.EnableFileSync(file2)
+	decorator.EnableFileSync(file2)
 
 	// Verify file2 has the buffer content
 	data2, _ := os.ReadFile(file2)
@@ -291,7 +300,7 @@ func TestEnableFileSync_SwitchFiles(t *testing.T) {
 	}
 
 	// Add more data
-	buffer.Write([]byte(" + More"))
+	decorator.Write([]byte(" + More"))
 
 	// Verify file2 has updated content
 	data2, _ = os.ReadFile(file2)
@@ -299,7 +308,7 @@ func TestEnableFileSync_SwitchFiles(t *testing.T) {
 		t.Errorf("File2 after write: expected 'File 1 content + More', got '%s'", string(data2))
 	}
 
-	buffer.Close()
+	decorator.Close()
 }
 
 func TestEnableFileSync_Append(t *testing.T) {
@@ -307,13 +316,14 @@ func TestEnableFileSync_Append(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewEmptySeekBuffer()
-	buffer.EnableFileSync(filename)
-	defer buffer.Close()
+	decorator := NewFileSyncDecorator(buffer)
+	decorator.EnableFileSync(filename)
+	defer decorator.Close()
 
 	// Use Append instead of Write
-	buffer.Append([]byte("First"))
-	buffer.Append([]byte(" Second"))
-	buffer.Append([]byte(" Third"))
+	decorator.Append([]byte("First"))
+	decorator.Append([]byte(" Second"))
+	decorator.Append([]byte(" Third"))
 
 	// Verify file content
 	data, err := os.ReadFile(filename)
@@ -332,23 +342,24 @@ func TestEnableFileSync_ReadWriteMix(t *testing.T) {
 	defer os.Remove(filename)
 
 	buffer := NewSeekBuffer([]byte("Initial content"))
-	buffer.EnableFileSync(filename)
-	defer buffer.Close()
+	decorator := NewFileSyncDecorator(buffer)
+	decorator.EnableFileSync(filename)
+	defer decorator.Close()
 
 	// Read some data
 	dst := make([]byte, 7)
-	buffer.Read(dst)
+	decorator.Read(dst)
 	if string(dst) != "Initial" {
 		t.Errorf("Read: expected 'Initial', got '%s'", string(dst))
 	}
 
 	// Write more data
-	buffer.Write([]byte(" + Added"))
+	decorator.Write([]byte(" + Added"))
 
 	// Verify buffer
 	expected := "Initial content + Added"
-	if string(buffer.Bytes()) != expected {
-		t.Errorf("Buffer: expected '%s', got '%s'", expected, string(buffer.Bytes()))
+	if string(decorator.Bytes()) != expected {
+		t.Errorf("SeekableBuffer: expected '%s', got '%s'", expected, string(decorator.Bytes()))
 	}
 
 	// Verify file
@@ -358,9 +369,9 @@ func TestEnableFileSync_ReadWriteMix(t *testing.T) {
 	}
 
 	// Rewind and read all
-	buffer.Rewind()
-	allData := make([]byte, len(buffer.Bytes()))
-	n, _ := buffer.Read(allData)
+	decorator.Rewind()
+	allData := make([]byte, len(decorator.Bytes()))
+	n, _ := decorator.Read(allData)
 	if n != len(expected) || string(allData) != expected {
 		t.Errorf("After rewind: expected '%s', got '%s'", expected, string(allData))
 	}
