@@ -6,7 +6,7 @@ build:
 	go build -v ./...
 
 test:
-	go test -v ./...
+	go test -v $(shell go list ./... | grep -v /examples/)
 
 cover:
-	go test -c	over -v ./...
+	go test -cover -v $(shell go list ./... | grep -v /examples/)
