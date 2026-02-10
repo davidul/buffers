@@ -40,11 +40,14 @@ func NewSeekBuffer(src []byte) *SeekBuffer {
 }
 
 // Bytes returns current content of the buffer
+// Note: it returns a copy of the buffer to prevent external modification
 // Thread-safe: uses read lock
 func (s *SeekBuffer) Bytes() []byte {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.buffer
+	result := make([]byte, len(s.buffer))
+	copy(result, s.buffer)
+	return result
 }
 
 // Append appends content to the buffer
