@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# JetBrains IDEs
+.idea/
+
+# Go vendoring (only if this project doesn’t intentionally commit vendor/)
+vendor/
